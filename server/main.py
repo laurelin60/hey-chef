@@ -26,19 +26,6 @@ def get_call_session_texts():
     data = fetch_data_from_table("CallSessionTexts")
     return jsonify(data)
 
-# @app.route('/query', methods=['POST'])
-# def query():
-#     data = request.json
-#     if 'sql' not in data or 'args' not in data or 'database' not in data:
-#         return jsonify({'error': 'Invalid request'}), 400
-
-#     sql = data['sql']
-#     args = data['args']
-#     database = data['database']
-
-#     result = fetch_data_from_table(sql, args, database)
-#     return jsonify(result)
-
 if __name__ == '__main__':
     app.run(debug=True)
     # To run the server, execute the following command in your terminal:
