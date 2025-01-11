@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from perplexity import get_chat_response
+from singlestore import fetch_data_from_table
 
 app = Flask(__name__)
 
@@ -14,6 +15,30 @@ def chat():
     
     return jsonify({'response': response})
 
+
+@app.route('/callsessions', methods=['GET'])
+def get_call_sessions():
+    data = fetch_data_from_table("CallSessions")
+    return jsonify(data)
+
+@app.route('/callsessiontexts', methods=['GET'])
+def get_call_session_texts():
+    data = fetch_data_from_table("CallSessionTexts")
+    return jsonify(data)
+
+# @app.route('/query', methods=['POST'])
+# def query():
+#     data = request.json
+#     if 'sql' not in data or 'args' not in data or 'database' not in data:
+#         return jsonify({'error': 'Invalid request'}), 400
+
+#     sql = data['sql']
+#     args = data['args']
+#     database = data['database']
+
+#     result = fetch_data_from_table(sql, args, database)
+#     return jsonify(result)
+
 if __name__ == '__main__':
     app.run(debug=True)
     # To run the server, execute the following command in your terminal:
@@ -21,3 +46,7 @@ if __name__ == '__main__':
 
     # To perform a dummy POST request, open a new terminal and use the following curl command:
     # curl -X POST http://127.0.0.1:5000/chat -H "Content-Type: application/json" -d '{"message": "Hello"}'
+
+
+
+
