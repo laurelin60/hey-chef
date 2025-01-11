@@ -4,6 +4,7 @@ from PIL import ImageGrab
 import threading
 import queue
 import time
+import warnings
 
 class ScreenCapture:
     def __init__(self):
@@ -36,7 +37,9 @@ class AudioCapture:
     def __init__(self, sample_rate=44100, channels=2, chunk_size=1024):
         self._running = False
         self._capture_thread = None
-        self.audio_queue = queue.Queue(maxsize=100)
+        self.audio_queue = queue.Queue(maxsize=10000)
+        self._ready = threading.Event()
+        self._data_available = threading.Condition()
         
         self.sample_rate = sample_rate
         self.channels = channels
@@ -53,49 +56,70 @@ class AudioCapture:
             if 'loopback' in mic.name.lower():
                 self.mic = mic
                 break
-            
-        print(f"Using loopback device: {self.mic.name}")
 
     def start(self):
         if not self._running:
             self._running = True
+            self._ready.clear()
             self._capture_thread = threading.Thread(target=self._capture_loop, daemon=True)
             self._capture_thread.start()
+            self._ready.wait(timeout=5.0)
 
     def _capture_loop(self):
-        # Use a smaller blocksize for more frequent updates
-        with self.mic.recorder(samplerate=self.sample_rate, channels=self.channels, blocksize=self.chunk_size) as mic:
-            while self._running:
-                # Record a block of audio
-                data = mic.record(numframes=self.chunk_size)
-                if np.max(np.abs(data)) > 0:  # Only queue if we have actual audio
+        warnings.filterwarnings('ignore', category=sc.SoundcardRuntimeWarning)
+        try:
+            with self.mic.recorder(samplerate=self.sample_rate, channels=self.channels, blocksize=self.chunk_size) as mic:
+                self._ready.set()
+                while self._running:
                     try:
-                        self.audio_queue.put_nowait(data)
-                    except queue.Full:
-                        # If queue is full, remove oldest item
-                        try:
-                            self.audio_queue.get_nowait()
-                            self.audio_queue.put_nowait(data)
-                        except queue.Empty:
-                            pass
+                        data = mic.record(numframes=self.chunk_size)
+                        max_amplitude = np.max(np.abs(data))
+                        if max_amplitude > 0:
+                            with self._data_available:
+                                try:
+                                    self.audio_queue.put_nowait(data)
+                                    self._data_available.notify()
+                                except queue.Full:
+                                    try:
+                                        self.audio_queue.get_nowait()
+                                        self.audio_queue.put_nowait(data)
+                                    except queue.Empty:
+                                        pass
+                    except Exception as e:
+                        if not self._running:
+                            break
+        except Exception as e:
+            self._ready.set()
 
     def stop(self):
         self._running = False
+        self._ready.clear()
+        with self._data_available:
+            self._data_available.notify_all()
         if self._capture_thread and self._capture_thread.is_alive():
             self._capture_thread.join()
             self._capture_thread = None
 
-    def get_audio_data(self):
+    def get_audio_data(self, timeout=0.1):
         """Get all audio data that has accumulated since the last call"""
-        chunks = []
-        while not self.audio_queue.empty():
-            chunks.append(self.audio_queue.get())
-        
-        if not chunks:
+        if not self._ready.is_set():
             return None
             
-        # Concatenate all chunks into a single array
-        return np.vstack(chunks)  # Use vstack for 2D arrays
+        with self._data_available:
+            if self.audio_queue.empty():
+                self._data_available.wait(timeout=timeout)
+            
+            chunks = []
+            try:
+                while not self.audio_queue.empty():
+                    chunks.append(self.audio_queue.get_nowait())
+            except (queue.Empty, IndexError):
+                pass
+            
+            if not chunks:
+                return None
+                
+            return np.vstack(chunks)
 
     def __del__(self):
         self.stop()

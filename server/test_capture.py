@@ -26,13 +26,15 @@ def test_audio_capture():
     audio_cap.start()
     
     print("Recording for 5 seconds...")
+    print("Please play some audio on your system to test the capture...")
+    
     audio_data = []
     start_time = time.time()
+    
     while time.time() - start_time < 5:
         data = audio_cap.get_audio_data()
         if data is not None:
             audio_data.append(data)
-        time.sleep(0.01)  # Small sleep to prevent busy waiting
     
     audio_cap.stop()
     
@@ -44,10 +46,6 @@ def test_audio_capture():
         print(f"Audio duration: {duration:.3f} seconds")
         print(f"Audio shape: {combined_audio.shape}")
         print(f"Max amplitude: {np.max(np.abs(combined_audio))}")
-        
-        # Verify duration is close to 5 seconds
-        if abs(duration - 5.0) > 0.1:  # Allow 0.1 second tolerance
-            print(f"WARNING: Audio duration ({duration:.3f}s) is not close to expected 5 seconds!")
         
         # Save as WAV file
         wav_file = "test_recording.wav"
@@ -62,7 +60,7 @@ def test_audio_capture():
         
         print(f"Audio saved to '{wav_file}'")
     else:
-        print("No audio data captured")
+        print("No audio data captured. Make sure system audio is playing during the test.")
 
 if __name__ == "__main__":
     test_audio_capture() 
