@@ -1,4 +1,5 @@
 from server.capture_utils import ScreenCapture, AudioCapture
+from server.mic_utils import VirtualMicrophone
 import time
 from PIL import Image
 import numpy as np
@@ -21,46 +22,45 @@ def test_screen_capture():
     screen_cap.stop()
 
 def test_audio_capture():
-    print("\nTesting audio capture...")
+    print("\nTesting audio capture and virtual microphone...")
     audio_cap = AudioCapture()
+    virtual_mic = VirtualMicrophone(
+        sample_rate=audio_cap.sample_rate,
+        channels=audio_cap.channels,
+        buffer_size=audio_cap.chunk_size
+    )
+    
     audio_cap.start()
+    virtual_mic.start()
     
-    print("Recording for 5 seconds...")
-    print("Please play some audio on your system to test the capture...")
+    print("Streaming audio to virtual microphone...")
+    print("Press Ctrl+C to stop...")
     
-    audio_data = []
-    start_time = time.time()
+    last_log_time = time.time()
+    data_count = 0
     
-    while time.time() - start_time < 5:
-        data = audio_cap.get_audio_data()
-        if data is not None:
-            audio_data.append(data)
-    
-    audio_cap.stop()
-    
-    if audio_data:
-        # Combine all audio chunks
-        combined_audio = np.vstack(audio_data)
-        duration = len(combined_audio) / audio_cap.sample_rate
-        print(f"Captured {len(combined_audio)} audio samples")
-        print(f"Audio duration: {duration:.3f} seconds")
-        print(f"Audio shape: {combined_audio.shape}")
-        print(f"Max amplitude: {np.max(np.abs(combined_audio))}")
-        
-        # Save as WAV file
-        wav_file = "test_recording.wav"
-        with wave.open(wav_file, 'wb') as wf:
-            wf.setnchannels(audio_cap.channels)
-            wf.setsampwidth(2)  # 2 bytes per sample (16-bit)
-            wf.setframerate(audio_cap.sample_rate)
-            
-            # Convert float32 to int16, preserving stereo
-            audio_int16 = (combined_audio * 32767).astype(np.int16)
-            wf.writeframes(audio_int16.tobytes())
-        
-        print(f"Audio saved to '{wav_file}'")
-    else:
-        print("No audio data captured. Make sure system audio is playing during the test.")
+    try:
+        while True:
+            data = audio_cap.get_audio_data()
+            if data is not None:
+                data_count += 1
+                virtual_mic.write(data)
+                
+                # Log stats every second
+                current_time = time.time()
+                if current_time - last_log_time >= 1.0:
+                    print(f"Audio chunks processed in last second: {data_count}")
+                    if data_count > 0:
+                        print(f"Last chunk shape: {data.shape}, max amplitude: {np.max(np.abs(data))}")
+                    data_count = 0
+                    last_log_time = current_time
+                    
+            time.sleep(0.001)  # Small sleep to prevent CPU overuse
+    except KeyboardInterrupt:
+        print("\nStopping audio capture and virtual microphone...")
+    finally:
+        audio_cap.stop()
+        virtual_mic.stop()
 
 if __name__ == "__main__":
     test_audio_capture() 

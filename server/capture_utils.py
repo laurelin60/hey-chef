@@ -50,12 +50,19 @@ class AudioCapture:
         if not mics:
             raise RuntimeError("Could not find any loopback audio devices")
         
+        self.mic = None
         # Find a loopback device
-        self.mic = mics[0]  # Default to first available device
         for mic in mics:
-            if 'loopback' in mic.name.lower():
+            if 'speakers (realtek(r) audio)' in mic.name.lower():
+            # if 'headphones (oculus virtual audio device)' in mic.name.lower(): # we can route the whatsapp audio to this device
                 self.mic = mic
                 break
+        
+        if self.mic is None:
+            raise RuntimeError("Could not find specified audio device to capture")
+        
+        print(f"Using {self.mic.name} as captured audio device")
+        
 
     def start(self):
         if not self._running:
@@ -68,6 +75,8 @@ class AudioCapture:
     def _capture_loop(self):
         warnings.filterwarnings('ignore', category=sc.SoundcardRuntimeWarning)
         try:
+            if self.mic is None:
+                return None
             with self.mic.recorder(samplerate=self.sample_rate, channels=self.channels, blocksize=self.chunk_size) as mic:
                 self._ready.set()
                 while self._running:
