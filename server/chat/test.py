@@ -1,9 +1,9 @@
 import glob
 import base64
-import json
 import time
 
 from server.chat.service import ChatService
+
 
 def read_images(frames_dir):
     base64_strings = []
@@ -15,20 +15,28 @@ def read_images(frames_dir):
 
     return base64_strings
 
+
 if __name__ == "__main__":
     chat = ChatService()
 
     images = read_images("../_data/frames")
 
+
     start = time.perf_counter()
-
-    for i in range(0, 21, 5):
-        print(i)
-        chat.store_context(images[i])
-
-    print(f"Time taken: {time.perf_counter() - start:.2f}s")
-
+    chat.store_context(images[0])
+    print(time.perf_counter() - start)
     print(chat.context_string())
 
-    res = chat.user_prompt("What can I make with the ingredients here?")
-    print(res)
+    start = time.perf_counter()
+    print(chat.user_prompt("I'm hungry, what can I make here?") )
+    print(time.perf_counter() - start)
+
+    start = time.perf_counter()
+    for i in range(1, 8, 2):
+        chat.store_context(images[i])
+        print(time.perf_counter() - start)
+        print(chat.context_string())
+
+    start = time.perf_counter()
+    print(chat.user_prompt("What's the next step?"))
+    print(time.perf_counter() - start)
