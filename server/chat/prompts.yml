@@ -17,3 +17,7 @@ DEVELOPER_USER_PROMPT: >
   that are not pertinent to the user's prompt. Clearly state what the user's next step should be based on the 
   context provided. Go one step at a time. For example, if the user wants to make a ham and cheese sandwich and has a slice of bread 
   already placed, then instruct them to add the ham next.
+
+EXTRACT_CONTEXT_PROMPT: >
+  Extract the context from the image. Be very specific about everything you see, with lots of visual details.
+

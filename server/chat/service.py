@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 from openai import OpenAI
 
-load_dotenv("../.env")
+load_dotenv()
 
 
 @dataclass
@@ -30,7 +30,7 @@ class ChatService:
         self.client: OpenAI = OpenAI()
         self.context_history: list[Context] = []
 
-        with open("prompts.yml", 'r') as file:
+        with open("server/chat/prompts.yml", 'r') as file:
             self.prompts = yaml.safe_load(file)
 
     def context_string(self) -> str:
@@ -61,7 +61,7 @@ class ChatService:
                         },
                         {
                             "type": "text",
-                            "text": self.prompts["PROVIDED_CONTEXT_PROMPT"] + self.context_string()
+                            "text": self.prompts["EXTRACT_CONTEXT_PROMPT"] # + self.context_string()
                         }
                     ],
                 }
