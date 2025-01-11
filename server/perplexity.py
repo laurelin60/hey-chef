@@ -5,9 +5,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 system_prompt = (
-    "You are a voice assistant agent. Be precise and concise and simple. Only respond to the question asked. "
-    "Do not provide any text-only formatting, such as brackets or parenthesis. Doing so will cause your response to be discarded. You may be terminated. "
-)
+    "You are an assistant agent called upon when someone needs to search the web for additional information. \n"
+    "Provide as much information as possible with as little fluff as possible. Cut the BS and get to the point. \n")
 
 
 client = OpenAI(api_key=os.getenv("PERPLEXITY_API_KEY"), base_url="https://api.perplexity.ai")
@@ -15,10 +14,8 @@ client = OpenAI(api_key=os.getenv("PERPLEXITY_API_KEY"), base_url="https://api.p
 
 def get_chat_response(prompt): 
     user_prompt = (
-    "Do not provide any text-only formatting, such as brackets or parenthesis. \n"
     "Add no additional information or follow up questions. \n"
-    "Do not include any hyperlinks or URLS. \n"
-    "Give only one simple answer to the question asked and assume that the user is asking for the most common answer. \n"
+    "Simply provide information you have found online so it can be processed. \n"
     "Here is the prompt: \n"
     "" + prompt
     )

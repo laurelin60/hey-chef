@@ -32,7 +32,7 @@ if __name__ == '__main__':
     # python /Users/zackeryhe/Desktop/hey-chef/server/main.py
 
     # To perform a dummy POST request, open a new terminal and use the following curl command:
-    # curl -X POST http://127.0.0.1:5000/chat -H "Content-Type: application/json" -d '{"message": "Hello"}'
+    # curl -X POST http://127.0.0.1:5000/chat -H "Content-Type: application/json" -d '{"message": "What is gordon ramsay's ham and cheese sandwich?"}'
 
 
 
