@@ -4,6 +4,8 @@ from livekit import rtc, api
 import os
 import logging
 
+from livekit.rtc import RpcInvocationData
+
 # Load environment variables
 load_dotenv()
 
@@ -17,7 +19,7 @@ TOKEN = api.AccessToken() \
     .with_name("server") \
     .with_grants(api.VideoGrants(
         room_join=True,
-        room="playground-Djj5-MtdM",
+        room="playground-q2wz-olQz",
     )).to_jwt()
 
 # Global variables for room and chat
@@ -50,24 +52,33 @@ async def join_room():
             asyncio.ensure_future(receive_frames(video_stream))
 
     print('attempting to join room')
+
     # Connect to the LiveKit room
     await room.connect(LIVEKIT_URL, TOKEN)
     print("Connected to room:", room.name)
-    
-    room.local_participant.set_name("[SERVER]")
+    await room.local_participant.set_name("[SERVER]")
     
     print(room.local_participant, room.remote_participants)
-
-    # Handle already available participants and tracks
+    
     for identity, participant in room.remote_participants.items():
         print(f"Identity: {identity}")
         print(f"Participant: {participant}")
         for tid, publication in participant.track_publications.items():
             print(f"\tTrack ID: {publication}")
 
+    @room.on('transcription_received')
+    def on_transcription_received(transcription: list[rtc.TranscriptionSegment]):
+        if transcription[-1].final:
+            print(transcription[-1].text)
+
+    # Handle already available participants and tracks
     chat = rtc.ChatManager(room)
 
-    await send_message(chat, "foobar")
+    await send_message(chat, "[SERVER] Connected")
+
+    @chat.on("message_received")
+    def on_message_received(msg: rtc.ChatMessage):
+        print(f"message received: {msg.participant.identity}: {msg.message}")
 
     # Keep the script running
     try:

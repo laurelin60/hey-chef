@@ -6,8 +6,9 @@ from typing import Optional
 import logging
 from dotenv import load_dotenv
 from livekit import rtc
-from livekit.agents import AutoSubscribe, JobContext, WorkerOptions, cli, llm
+from livekit.agents import AutoSubscribe, JobContext, WorkerOptions, cli, llm, stt, transcription
 from livekit.agents.pipeline import VoicePipelineAgent
+from livekit.agents.stt import STT
 from livekit.plugins import deepgram, openai, silero
 
 load_dotenv(dotenv_path=".env.local")
@@ -16,6 +17,19 @@ logger.setLevel(logging.INFO)
 
 # We'll keep an 'agent' reference at the module level so it can be called later
 agent: Optional[VoicePipelineAgent] = None
+#
+# async def _forward_transcription(
+#     stt_stream: stt.SpeechStream,
+#     stt_forwarder: transcription.STTSegmentsForwarder,
+# ):
+#     """Forward the transcription and log the transcript in the console"""
+#     async for ev in stt_stream:
+#         stt_forwarder.update(ev)
+#         if ev.type == stt.SpeechEventType.INTERIM_TRANSCRIPT:
+#             print(ev.alternatives[0].text, end="")
+#         elif ev.type == stt.SpeechEventType.FINAL_TRANSCRIPT:
+#             print("\n")
+#             print(" -> ", ev.alternatives[0].text)
 
 async def entrypoint(ctx: JobContext):
     """
@@ -44,6 +58,29 @@ async def entrypoint(ctx: JobContext):
         chat_ctx=initial_ctx,
     )
     agent.start(ctx.room)
+
+    # async def transcribe_track(participant: rtc.RemoteParticipant, track: rtc.Track):
+    #     audio_stream = rtc.AudioStream(track)
+    #     stt_forwarder = transcription.STTSegmentsForwarder(
+    #         room=ctx.room, participant=participant, track=track
+    #     )
+    #     stt_stream = stt.stream()
+    #     stt_task = asyncio.create_task(
+    #         _forward_transcription(stt_stream, stt_forwarder)
+    #     )
+    #     tasks.append(stt_task)
+    #
+    #     async for ev in audio_stream:
+    #         stt_stream.push_frame(ev.frame)
+
+    # @ctx.room.on("track_subscribed")
+    # def on_track_subscribed(
+    #         track: rtc.Track,
+    #         publication: rtc.TrackPublication,
+    #         participant: rtc.RemoteParticipant,
+    # ):
+    #     if track.kind == rtc.TrackKind.KIND_AUDIO:
+    #         tasks.append(asyncio.create_task(transcribe_track(participant, track)))
 
     # Subscribe to chat events in the room
     @ctx.room.on("data_received")
