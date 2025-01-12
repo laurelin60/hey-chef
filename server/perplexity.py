@@ -1,6 +1,7 @@
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
+import re
 
 load_dotenv()
 
@@ -36,5 +37,5 @@ def get_chat_response(prompt):
         messages=messages,
     )
 
-    return response.choices[0].message.content
+    return re.sub(r'\[\d+\]', '', response.choices[0].message.content)
 
