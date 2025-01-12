@@ -3,23 +3,15 @@ from dotenv import load_dotenv
 from livekit import rtc, api
 import os
 import logging
-import base64
-from PIL import Image
-import io
-from server.capture_utils import ScreenCapture, AudioCapture, is_frame_black
 
 from livekit.rtc import RpcInvocationData
-
-from server.chat.service import ChatService
 
 # Load environment variables
 load_dotenv()
 
 # Set up logging
 
-LIVEKIT_URL = os.getenv("LIVEKIT_URL", "")  # Default to empty string instead of None
-if not LIVEKIT_URL:
-    raise ValueError("LIVEKIT_URL environment variable is not set")
+LIVEKIT_URL = os.getenv("LIVEKIT_URL")
 
 # Generate a token with room join grants
 TOKEN = api.AccessToken() \
@@ -27,109 +19,83 @@ TOKEN = api.AccessToken() \
     .with_name("server") \
     .with_grants(api.VideoGrants(
     room_join=True,
-    room="playground-UhLd-Caip"
+    room="playground-q2wz-olQz",
 )).to_jwt()
 
+# Global variables for room and chat
+room = None
+chat = None
 
-class Room:
-    def __init__(self):
-        self.room = rtc.Room()
-        self.chat = None
-        self.chat_service = None  # Initialize later when we have chat
-        self.screen_capture = ScreenCapture()
-        self._running = False
-        self._frame_process_task = None
 
-        @self.room.on("participant_connected")
-        def on_participant_connected(participant: rtc.RemoteParticipant):
-            logging.info(
-                "Participant connected: %s %s", participant.sid, participant.identity)
+async def join_room():
+    """
+    Main entry point for the bot.
+    Connects to the LiveKit room and handles video tracks and participants.
+    """
+    global room, chat  # Use global variables to allow access in other scripts
+    room = rtc.Room()
 
-    async def frame_processing_loop(self):
-        last_process_time = 0
-        process_interval = 0.1  # Process frames pretty much as soon as they come in
+    @room.on("participant_connected")
+    def on_participant_connected(participant: rtc.RemoteParticipant):
+        logging.info(
+            "Participant connected: %s %s", participant.sid, participant.identity)
 
-        while self._running:
-            current_time = asyncio.get_event_loop().time()
-            if current_time - last_process_time >= process_interval and self.chat_service:
-                frame = self.screen_capture.get_last_frame()
-                if frame and not is_frame_black(frame):
-                    # Convert PIL Image to base64
-                    buffered = io.BytesIO()
-                    frame.save(buffered, format="JPEG")
-                    img_str = base64.b64encode(buffered.getvalue()).decode()
-                    
-                    # response = await self.chat_service.passive_prompt(img_str)
-                    # if response:
-                    #     await self.send_message(response)
-                
-                last_process_time = current_time
-            
-            await asyncio.sleep(0.1)  # Small sleep to prevent CPU hogging
+    async def receive_frames(stream: rtc.VideoStream):
+        async for frame in stream:
+            # Process received video frames here
+            pass
 
-    async def connect(self):
-        print('attempting to join room')
-        self._running = True
+    @room.on("track_subscribed")
+    def on_track_subscribed(track: rtc.Track, publication: rtc.RemoteTrackPublication,
+                            participant: rtc.RemoteParticipant):
+        print("Track subscribed: %s", publication.sid)
+        if track.kind == rtc.TrackKind.KIND_VIDEO:
+            video_stream = rtc.VideoStream(track)
+            asyncio.ensure_future(receive_frames(video_stream))
 
-        # Connect to the LiveKit room
-        await self.room.connect(LIVEKIT_URL, TOKEN)
-        print("Connected to room:", self.room.name)
-        await self.room.local_participant.set_name("[SERVER]")
+    print('attempting to join room')
 
-        print(self.room.local_participant, self.room.remote_participants)
+    # Connect to the LiveKit room
+    await room.connect(LIVEKIT_URL, TOKEN)
+    print("Connected to room:", room.name)
+    await room.local_participant.set_name("[SERVER]")
 
-        for identity, participant in self.room.remote_participants.items():
-            print(f"Identity: {identity}")
-            print(f"Participant: {participant}")
-            for tid, publication in participant.track_publications.items():
-                print(f"\tTrack ID: {publication}")
+    print(room.local_participant, room.remote_participants)
 
-        @self.room.on('transcription_received')
-        def on_transcription_received(transcription: list[rtc.TranscriptionSegment]):
-            print(transcription)
-            if transcription[-1].final and self.chat_service is not None:
-                user_prompt = transcription[-1].text
-                frame = self.screen_capture.get_last_frame()
+    for identity, participant in room.remote_participants.items():
+        print(f"Identity: {identity}")
+        print(f"Participant: {participant}")
+        for tid, publication in participant.track_publications.items():
+            print(f"\tTrack ID: {publication}")
 
-                async def process_prompt():
-                    if frame and not is_frame_black(frame):
-                        # Convert PIL Image to base64
-                        buffered = io.BytesIO()
-                        frame.save(buffered, format="JPEG")
-                        img_str = base64.b64encode(buffered.getvalue()).decode()
-                        response = await self.chat_service.user_prompt(user_prompt, img_str)
-                    else:
-                        response = await self.chat_service.user_prompt(user_prompt)
-                    await self.send_message(response)
+    @room.on('transcription_received')
+    def on_transcription_received(transcription: list[rtc.TranscriptionSegment]):
+        if transcription[-1].final:
+            print(transcription[-1].text)
 
-                asyncio.create_task(process_prompt())
+    # Handle already available participants and tracks
+    chat = rtc.ChatManager(room)
 
-        self.chat = rtc.ChatManager(self.room)
-        self.chat_service = ChatService(send_message=self.send_message)
+    await send_message(chat, "[SERVER] Connected")
 
-        await self.send_message("[SERVER] Connected")
+    @chat.on("message_received")
+    def on_message_received(msg: rtc.ChatMessage):
+        print(f"message received: {msg.participant.identity}: {msg.message}")
 
-        try:
-            # Start frame processing loop
-            # self._frame_process_task = asyncio.create_task(self.frame_processing_loop())
-            
-            # Main room loop
-            while True:
-                await asyncio.sleep(1)
-        except KeyboardInterrupt:
-            print("Shutting down bot...")
-            self._running = False
-            # if self._frame_process_task:
-            #     await self._frame_process_task
-            await self.room.disconnect()
+    # Keep the script running
+    try:
+        while True:
+            await asyncio.sleep(1)
+    except KeyboardInterrupt:
+        print("Shutting down bot...")
+        await room.disconnect()
 
-    async def send_message(self, message):
-        if self.chat:  # Only send if chat is initialized
-            print('sending message...')
-            await self.chat.send_message(message)
-            print('message sent!')
+
+async def send_message(chat: rtc.ChatManager, text: str):
+    print('sending message...')
+    await chat.send_message(text)
+    print('message sent!')
 
 
 if __name__ == "__main__":
-    room = Room()
-    asyncio.run(room.connect())
+    room, chat = asyncio.run(join_room())
