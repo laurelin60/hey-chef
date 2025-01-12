@@ -11,6 +11,8 @@ from livekit.agents.pipeline import VoicePipelineAgent
 from livekit.agents.stt import STT
 from livekit.plugins import deepgram, openai, silero
 
+from perplexity import get_chat_response
+
 load_dotenv()
 logger = logging.getLogger("my-worker")
 logger.setLevel(logging.INFO)
@@ -49,6 +51,15 @@ async def entrypoint(ctx: JobContext):
         ),
     )
 
+    class AssistantFnc(llm.FunctionContext):
+        @llm.ai_callable()
+        async def ask_perplexity(self, prompt: str):
+            """Ask the Perplexity API to search the web for a response to a given prompt."""
+            return get_chat_response(prompt)
+        
+
+    fnc_ctx = AssistantFnc()
+
     logger.info(f"Connecting to room: {ctx.room.name}")
     await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
 
@@ -58,6 +69,7 @@ async def entrypoint(ctx: JobContext):
         llm=openai.LLM(),
         tts=openai.TTS(),
         chat_ctx=initial_ctx,
+        fnc_ctx=fnc_ctx,
     )
     agent.start(ctx.room)
 

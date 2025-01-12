@@ -88,6 +88,5 @@ def insert_new_call_session_context(callId, context):
     conn = get_db_connection()
     with conn.cursor() as cur:
         if cur.is_connected():
-            print(f"inserting new call session context")
             cur.execute("INSERT INTO CallSessionContexts (contextData, callId) VALUES (%s, %s)", (context, callId))
             conn.commit()
