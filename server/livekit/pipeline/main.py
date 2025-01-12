@@ -11,7 +11,7 @@ from livekit.agents.pipeline import VoicePipelineAgent
 from livekit.agents.stt import STT
 from livekit.plugins import deepgram, openai, silero
 
-from perplexity import get_chat_response
+from ...perplexity import get_chat_response
 
 load_dotenv()
 logger = logging.getLogger("my-worker")

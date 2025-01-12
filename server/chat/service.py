@@ -6,7 +6,7 @@ from openai.types.chat import ChatCompletionMessageParam, ChatCompletionSystemMe
     ChatCompletionUserMessageParam, ChatCompletionAssistantMessageParam
 from pydantic import BaseModel
 import os
-from singlestore import insert_new_call_session_context
+from ..singlestore import insert_new_call_session_context
 load_dotenv()
 
 
@@ -124,6 +124,7 @@ class ChatService:
         return response
 
     async def passive_prompt(self, image: Optional[str] = None) -> Optional[str]:
+        print('heeerereeeeee')
         # Add system instructions for passive observation
         system_message: Dict[str, Any] = {
             "role": "system",
@@ -159,6 +160,8 @@ class ChatService:
             response_format=PassiveResponse
         )
 
+        
+        print('heeerereeeeee')
         response_data = completion.choices[0].message.parsed
         if not isinstance(response_data, PassiveResponse) or response_data.passive_user_message is None:
             return None
@@ -170,6 +173,7 @@ class ChatService:
             }
 
             insert_new_call_session_context(10, response_data.passive_user_message)
+
             self.messages.append(cast(ChatCompletionAssistantMessageParam, assistant_message))
 
             if self.send_message and response_data.passive_user_message:
