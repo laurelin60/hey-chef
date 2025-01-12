@@ -33,7 +33,7 @@ TOKEN = api.AccessToken() \
     .with_name("server") \
     .with_grants(api.VideoGrants(
     room_join=True,
-    room="playground-HoXN-bzij",
+    room="playground-UqLs-OA5Y",
 )).to_jwt()
 
 # Global variables for room and chat
@@ -153,6 +153,10 @@ async def join_room():
 async def send_message(text: str):
     if chat:
         logger.info('sending message...')
+
+        if not text.startswith("["):
+            text = f"[SERVER_MESSAGE] {text}"
+
         await chat.send_message(text)
         logger.info('message sent!')
 

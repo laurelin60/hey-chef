@@ -42,8 +42,10 @@ async def entrypoint(ctx: JobContext):
     initial_ctx = llm.ChatContext().append(
         role="system",
         text=(
-            "You are a voice assistant created by LiveKit. Your interface with users will be voice. "
+            "You are a voice assistant. Your interface with users will be voice. "
             "You should use short and concise responses, and avoid unpronounceable punctuation."
+            "If you are ever prompted to help a user with a recipe,"
+            "respond EXACTLY AS THE FOLLOWING: 'Great, let's get started!'"
         ),
     )
 
@@ -96,11 +98,8 @@ async def entrypoint(ctx: JobContext):
 
         message = data_dict.get("message", "No message found")
         
-        if message[0] == "[":
-            return
-        
-        if "ham and cheese" in message.lower():
-            return
+        # if not message.startswith("[SERVER MESSAGE]"):
+        #     return
 
         if agent:
             # Assuming the data packet contains text data
