@@ -1,25 +1,57 @@
-from server.capture_utils import ScreenCapture, AudioCapture
+from server.capture_utils import ScreenCapture, AudioCapture, is_frame_black
 from server.mic_utils import VirtualMicrophone
 import time
 from PIL import Image
 import numpy as np
 import wave
 import struct
+import cv2
 
 def test_screen_capture():
     print("Testing screen capture...")
+    
+    # Create screen capture with default vertical bar region
     screen_cap = ScreenCapture()
     
-    # Wait a bit for first capture
-    time.sleep(0.1)
+    # Create window with specific properties
+    window_name = 'Secondary Monitor Capture'
+    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
     
-    # Get and save a frame
-    frame = screen_cap.get_last_frame()
-    if frame:
-        frame.save("test_screenshot.png")
-        print("Screenshot saved as 'test_screenshot.png'")
+    # Set window size and position (using hardcoded values matching the downscaled capture)
+    cv2.resizeWindow(window_name, 275, 490)  # Half of 550x980
+    cv2.moveWindow(window_name, 100, 100)  # Position window away from corner
     
-    screen_cap.stop()
+    try:
+        while True:
+            frame = screen_cap.get_last_frame()
+            if frame:
+                # Convert PIL image to OpenCV format
+                frame_array = np.array(frame)
+                if len(frame_array.shape) == 3:  # Color image
+                    cv_frame = cv2.cvtColor(frame_array, cv2.COLOR_RGB2BGR)
+                else:  # Grayscale image
+                    cv_frame = frame_array
+                
+                # Display the frame
+                cv2.imshow(window_name, cv_frame)
+                
+                # Break loop on 'q' press
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+            else:
+                print("No frame captured")
+            
+            time.sleep(1/30)  # Limit refresh rate
+            
+    except KeyboardInterrupt:
+        print("\nStopping capture...")
+    except Exception as e:
+        print(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        screen_cap.stop()
+        cv2.destroyAllWindows()
 
 def test_audio_capture():
     print("\nTesting audio capture and virtual microphone...")
@@ -63,4 +95,4 @@ def test_audio_capture():
         virtual_mic.stop()
 
 if __name__ == "__main__":
-    test_audio_capture() 
+    test_screen_capture() 

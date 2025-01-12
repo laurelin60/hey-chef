@@ -1,16 +1,85 @@
 import numpy as np
 import soundcard as sc
-from PIL import ImageGrab
+from PIL import ImageGrab, Image
 import threading
 import queue
 import time
 import warnings
+from screeninfo import get_monitors
+
+def is_frame_black(frame):
+    """Check if a PIL Image is completely or almost completely black."""
+    if frame is None:
+        return True
+    # Convert to numpy array and check all color channels
+    frame_array = np.array(frame)
+    # Calculate the mean pixel value across all channels
+    mean_value = np.mean(frame_array)
+    print(f"Mean pixel value: {mean_value}")  # Debug info
+    # If mean is very close to 0, frame is essentially black
+    return mean_value < 1.0
 
 class ScreenCapture:
-    def __init__(self):
+    def __init__(self, custom_crop_box=None):
         self._last_frame = None
         self._capture_thread = threading.Thread(target=self._capture_loop, daemon=True)
         self._running = False
+        
+        # Find secondary monitor
+        monitors = get_monitors()
+        # print("\nDetailed monitor information:")
+        # for i, m in enumerate(monitors):
+        #     print(f"Monitor {i}:")
+        #     print(f"  Name: {m.name}")
+        #     print(f"  Resolution: {m.width}x{m.height}")
+        #     print(f"  Position: ({m.x}, {m.y})")
+        #     print(f"  Primary: {m.is_primary}")
+            
+        # Try using the non-primary monitor
+        self.monitor = None
+        for m in monitors:
+            if not m.is_primary:
+                self.monitor = m
+                break
+                
+        if self.monitor is None:
+            raise RuntimeError("No secondary monitor found")
+            
+        # print(f"\nSelected monitor:")
+        # print(f"  Name: {self.monitor.name}")
+        # print(f"  Resolution: {self.monitor.width}x{self.monitor.height}")
+        # print(f"  Position: ({self.monitor.x}, {self.monitor.y})")
+        
+        # Default crop box for vertical bar (hardcoded dimensions from test_capture.py)
+        bar_width = 550
+        top_crop = 46
+        bottom_crop = 54
+        default_crop = (
+            1920//2 - bar_width//2,  # Center horizontally
+            top_crop,                # Crop from top
+            1920//2 + bar_width//2,  # Right edge
+            1080 - bottom_crop       # Crop from bottom
+        )
+        
+        # Use custom crop box if provided, otherwise use default
+        crop_box = custom_crop_box if custom_crop_box is not None else default_crop
+        
+        # Calculate the exact region to capture
+        left = self.monitor.x + crop_box[0]
+        top = self.monitor.y + crop_box[1]
+        right = self.monitor.x + crop_box[2]
+        bottom = self.monitor.y + crop_box[3]
+        self.capture_bounds = (left, top, right, bottom)
+        
+        # Calculate downscaled dimensions
+        self.target_width = (right - left) // 2
+        self.target_height = (bottom - top) // 2
+            
+        # print(f"Capture bounds: {self.capture_bounds}")
+        # print(f"Downscaled size: {self.target_width}x{self.target_height}")
+        
+        # Create a lock for thread safety
+        self._lock = threading.Lock()
         self.start()
     
     def start(self):
@@ -23,12 +92,33 @@ class ScreenCapture:
             self._capture_thread.join()
     
     def _capture_loop(self):
+        last_capture_time = 0
+        target_interval = 1.0 / 30  # Target 30 FPS
+        
         while self._running:
-            self._last_frame = ImageGrab.grab()
-            time.sleep(1/30)  # Limit to ~30 FPS
+            current_time = time.time()
+            elapsed = current_time - last_capture_time
+            
+            if elapsed >= target_interval:
+                try:
+                    # Capture and downscale in one step
+                    frame = ImageGrab.grab(bbox=self.capture_bounds, all_screens=True)
+                    if frame:
+                        frame = frame.resize((self.target_width, self.target_height), Image.Resampling.LANCZOS)
+                        with self._lock:
+                            self._last_frame = frame
+                    last_capture_time = current_time
+                except Exception as e:
+                    print(f"Capture error: {e}")
+            else:
+                # Sleep for the remaining time to maintain target FPS
+                sleep_time = target_interval - elapsed
+                if sleep_time > 0:
+                    time.sleep(sleep_time)
     
     def get_last_frame(self):
-        return self._last_frame
+        with self._lock:
+            return self._last_frame if self._last_frame else None
 
 class AudioCapture:
     """
