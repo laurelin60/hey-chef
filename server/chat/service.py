@@ -2,10 +2,11 @@ import json
 from typing import List, Dict, Any, Optional, cast, Callable
 import yaml
 from dotenv import load_dotenv
-from openai import OpenAI
+from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam, ChatCompletionSystemMessageParam, \
     ChatCompletionUserMessageParam, ChatCompletionAssistantMessageParam
 from pydantic import BaseModel
+import os
 
 load_dotenv()
 
@@ -19,12 +20,13 @@ class ChatService:
 
     def __init__(self, model: str = "gpt-4o-mini", send_message: Callable | None = None):
         self.model: str = model
-        self.client: OpenAI = OpenAI()
+        self.client: AsyncOpenAI = AsyncOpenAI()
         self.messages: List[ChatCompletionMessageParam] = []
         self.image_message_indices: List[int] = []  # Keep track of messages containing images
         self.send_message = send_message
 
-        with open("prompts.yml", "r") as file:
+        prompts_path = os.path.join(os.path.dirname(__file__), "prompts.yml")
+        with open(prompts_path, "r") as file:
             self.prompts = yaml.safe_load(file)
 
         # Initialize with master system prompt
@@ -67,7 +69,7 @@ class ChatService:
             message_dict = cast(Dict[str, Any], message)
             message_dict["content"] = new_content
 
-    def user_prompt(self, message: str, image: str | None = None) -> str:
+    async def user_prompt(self, message: str, image: str | None = None) -> str:
         # Add user instructions for direct questions
         system_message: Dict[str, Any] = {
             "role": "system",
@@ -101,7 +103,7 @@ class ChatService:
         self.messages.append(cast(ChatCompletionUserMessageParam, user_message))
         self._manage_image_context(message_idx)
 
-        completion = self.client.chat.completions.create(
+        completion = await self.client.chat.completions.create(
             model=self.model,
             messages=self.messages
         )
@@ -119,7 +121,7 @@ class ChatService:
 
         return response
 
-    def passive_prompt(self, image: str) -> Optional[str]:
+    async def passive_prompt(self, image: str) -> Optional[str]:
         # Add system instructions for passive observation
         system_message: Dict[str, Any] = {
             "role": "system",
@@ -146,7 +148,7 @@ class ChatService:
         self.messages.append(cast(ChatCompletionUserMessageParam, user_message))
         self._manage_image_context(message_idx)
 
-        completion = self.client.beta.chat.completions.parse(
+        completion = await self.client.beta.chat.completions.parse(
             model=self.model,
             messages=self.messages,
             response_format=PassiveResponse
@@ -164,7 +166,7 @@ class ChatService:
             self.messages.append(cast(ChatCompletionAssistantMessageParam, assistant_message))
 
             if self.send_message and response_data.passive_user_message:
-                self.send_message(response_data.passive_user_message)
+                await self.send_message(response_data.passive_user_message)
 
             return response_data.passive_user_message
 

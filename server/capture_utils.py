@@ -15,7 +15,7 @@ def is_frame_black(frame):
     frame_array = np.array(frame)
     # Calculate the mean pixel value across all channels
     mean_value = np.mean(frame_array)
-    print(f"Mean pixel value: {mean_value}")  # Debug info
+    # print(f"Mean pixel value: {mean_value}")  # Debug info
     # If mean is very close to 0, frame is essentially black
     return mean_value < 1.0
 
