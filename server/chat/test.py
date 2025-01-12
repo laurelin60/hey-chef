@@ -28,30 +28,27 @@ if __name__ == "__main__":
     chat = ChatService()
     images = read_images("server/_data/frames")
 
-    print_section("Initial Context")
-    start = time.perf_counter()
-    chat.store_context(images[0])
-    print_timing(time.perf_counter() - start)
-    print(f"{Fore.YELLOW}{chat.context_string()}{Style.RESET_ALL}")
 
     print_section("First User Query")
     start = time.perf_counter()
-    response = chat.user_prompt("I'm hungry, what can I make here?")
+    response = chat.user_prompt("I'm hungry, what can I make here?", images[0])
     print_timing(time.perf_counter() - start)
     print(f"{Fore.MAGENTA}User: I'm hungry, what can I make here?")
     print(f"{Fore.WHITE}{response}{Style.RESET_ALL}")
 
     print_section("Processing Additional Images")
-    for i in range(1, 8, 2):
-        print(f"\n{Fore.BLUE}Processing image {i}/8{Style.RESET_ALL}")
+    for i in range(1, 30, 2):
+        print(f"\n{Fore.BLUE}Processing image {i}{Style.RESET_ALL}")
         start = time.perf_counter()
-        chat.store_context(images[i])
+        response = chat.passive_prompt(images[i])
+        if response is not None:
+            print(f"{Fore.WHITE}{response}{Style.RESET_ALL}")
         # print_timing(time.perf_counter() - start)
         # print(f"{Fore.YELLOW}{chat.context_string()}{Style.RESET_ALL}")
 
     print_section("Follow-up Query")
     start = time.perf_counter()
-    response = chat.user_prompt("What's the next step?")
+    response = chat.user_prompt("Ok now what", images[31])
     print_timing(time.perf_counter() - start)
-    print(f"{Fore.MAGENTA}User: What's the next step?")
+    print(f"{Fore.MAGENTA}User: Ok now what")
     print(f"{Fore.WHITE}{response}{Style.RESET_ALL}")
