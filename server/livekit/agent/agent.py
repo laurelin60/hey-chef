@@ -40,7 +40,7 @@ class AssistantFnc(llm.FunctionContext):
         """
         logger.info(f"[TOOL USE] Staying silent.")
         
-        return "[SYSTEM_INSTRUCTION] Send silence / empty string to the user"
+        return "[SYSTEM] [EMPTY AUDIO] [Silence]"
      
 async def entrypoint(ctx: JobContext):
     logger.info(f"connecting to room {ctx.room.name}")
@@ -71,16 +71,11 @@ def run_multimodal_agent(ctx: JobContext, participant: rtc.RemoteParticipant):
     agent = MultimodalAgent(
         model=model,
         fnc_ctx=fnc_ctx,
+        
     )
     agent.start(ctx.room, participant)
 
     session = model.sessions[0]
-    # session.conversation.item.create(
-    #     llm.ChatMessage(
-    #         role="system",
-    #         content="Do not respond unless the message begins with 'hey chef'. In that case, call stay_silent and stay silent.",
-    #     )
-    # )
     session.conversation.item.create(
         llm.ChatMessage(
             role="assistant",

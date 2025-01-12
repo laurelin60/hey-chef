@@ -14,32 +14,33 @@ import torch
 
 load_dotenv()
 
+conn = None
 
 def get_db_connection():
-    conn = s2.connect(os.getenv("SINGLESTORE_STUFF") + ":" + os.getenv("SINGLESTORE_PORT") + "/" + os.getenv("SINGLESTORE_DB"))
+    global conn
+    if conn is None:
+      conn = s2.connect(os.getenv("SINGLESTORE_STUFF") + ":" + os.getenv("SINGLESTORE_PORT") + "/" + os.getenv("SINGLESTORE_DB"))
     return conn
 
 
 def fetch_data_from_table(table_name):
     conn = get_db_connection()
-    with conn:
-        with conn.cursor() as cur:
-            if cur.is_connected():
-                print(f"fetching data from {table_name}")
-                cur.execute(f"SELECT * FROM {table_name}")
-                rows = cur.fetchall()
-                return rows
+    with conn.cursor() as cur:
+        if cur.is_connected():
+            print(f"fetching data from {table_name}")
+            cur.execute(f"SELECT * FROM {table_name}")
+            rows = cur.fetchall()
+            return rows
 
 
-def fetch_text_from_call_session(call_session_id):
+def fetch_context_from_call_session(call_session_id):
     conn = get_db_connection()
-    with conn:
-        with conn.cursor() as cur:
-            if cur.is_connected():
-                print(f"fetching data from CallData")
-                cur.execute(f"SELECT * FROM CallSessionTexts WHERE CallSessionTexts.CallId = {call_session_id}")
-                rows = cur.fetchall()
-                return rows
+    with conn.cursor() as cur:
+        if cur.is_connected():
+            print(f"fetching data from CallSessionContexts")
+            cur.execute(f"SELECT * FROM CallSessionContexts WHERE CallSessionContexts.callId = {call_session_id}")
+            rows = cur.fetchall()
+            return rows
 
 
 def vectorize_and_insert_image(PILimage):
@@ -68,10 +69,25 @@ def vectorize_and_insert_image(PILimage):
     # vector = np.frombuffer(binary_vector, dtype=np.float32)
     # print(vector)
     conn = get_db_connection()
-    with conn:
-        with conn.cursor() as cur:
-            if cur.is_connected():
-                print(f"inserting image")
-                sql = "INSERT INTO CallSessionImages (callId, vector) VALUES (%s, %s)"
-                cur.execute(sql, (1, binary_vector))
-                conn.commit()
+    with conn.cursor() as cur:
+        if cur.is_connected():
+            print(f"inserting image")
+            sql = "INSERT INTO CallSessionImages (callId, vector) VALUES (%s, %s)"
+            cur.execute(sql, (1, binary_vector))
+            conn.commit()
+
+def insert_new_call_session():
+    conn = get_db_connection()
+    with conn.cursor() as cur:
+        if cur.is_connected():
+            print(f"inserting new call session")
+            cur.execute("INSERT INTO CallSessions (id, startDate) VALUES (DEFAULT, DEFAULT)")
+            conn.commit()
+
+def insert_new_call_session_context(callId, context):
+    conn = get_db_connection()
+    with conn.cursor() as cur:
+        if cur.is_connected():
+            print(f"inserting new call session context")
+            cur.execute("INSERT INTO CallSessionContexts (contextData, callId) VALUES (%s, %s)", (context, callId))
+            conn.commit()
