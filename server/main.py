@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from perplexity import get_chat_response
-from singlestore import fetch_data_from_table
+from singlestore import *
 
 app = Flask(__name__)
 
@@ -21,10 +21,44 @@ def get_call_sessions():
     data = fetch_data_from_table("CallSessions")
     return jsonify(data)
 
-@app.route('/callsessiontexts', methods=['GET'])
+@app.route('/callsessioncontexts', methods=['GET'])
 def get_call_session_texts():
-    data = fetch_data_from_table("CallSessionTexts")
+    data = fetch_data_from_table("CallSessionContexts")
     return jsonify(data)
+
+# @app.route('/callsessionimages', methods=['GET'])
+# def get_call_session_images():
+#     data = fetch_image_data_from_table("CallSessionImages")
+#     return jsonify(data)
+
+# add routes that insert into callsession, callsessioncontexts, and callsessionimages tables
+@app.route('/callsessions', methods=['POST'])
+def insert_call_session():
+    insert_new_call_session()
+    return jsonify({'message': 'success'})
+
+@app.route('/callsessioncontexts', methods=['POST'])
+def insert_call_session_context():
+    data = request.json
+    if 'callId' not in data or 'contextData' not in data:
+        return jsonify({'error': 'Missing callId or text'}), 400
+
+    call_id = data['callId']
+    contextData = data['contextData']
+    insert_new_call_session_context(call_id, contextData)
+    return jsonify({'message': 'success'})
+
+@app.route('/callsessionimages', methods=['POST'])
+def insert_call_session_image():
+    data = request.json
+    if 'callId' not in data or 'image' not in data:
+        return jsonify({'error': 'Missing callId or image'}), 400
+
+    call_id = data['callId']
+    image = data['image']
+    vectorize_and_insert_image(call_id, image)
+    return jsonify({'message': 'success'})
+        
 
 if __name__ == '__main__':
     app.run(debug=True)
