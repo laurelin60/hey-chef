@@ -33,7 +33,7 @@ TOKEN = api.AccessToken() \
     .with_name("server") \
     .with_grants(api.VideoGrants(
     room_join=True,
-    room="playground-UqLs-OA5Y",
+    room="playground-taGh-Blff",
 )).to_jwt()
 
 # Global variables for room and chat
