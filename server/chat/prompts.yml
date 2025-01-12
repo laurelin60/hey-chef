@@ -100,10 +100,10 @@ PASSIVE_PROMPT: >
   }
 
   Important rules for passive_user_message:
-  - Most of the time, respond with "N/A". This includes when the next step is similar to something you've suggested recently
-  - Only provide a message if you have something immediately useful to say that the user does not already know
-  - If you've suggested something recently, DO NOT suggest it again. (ie if you suggested to add cheese on top of the ham recently, do not suggest it again for a while)
-  - Never repeat similar suggestions, even with different wording. This means looking at recent context is VERY IMPORTANT in deciding what to suggest.
+  - Most of the time, respond with "N/A"
+  - Only provide a message if you have something immediately useful to say
+  - If you've suggested something recently, DO NOT suggest it again
+  - Never repeat similar suggestions, even with different wording
   - Keep suggestions EXTREMELY concise - they will be voice messages
   - If the previous suggestion hasn't been followed yet, respond with "N/A"
   - Example: if you suggested adding cheese and they haven't done it, respond "N/A"
