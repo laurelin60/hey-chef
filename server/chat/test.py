@@ -48,14 +48,14 @@ if __name__ == "__main__":
     print_section("First User Query")
     start = time.perf_counter()
     show_image(images[10], "Current Frame")  # Show initial image
-    response = chat.user_prompt("I'm hungry, what can I make here?", images[10])
+    response = chat.user_prompt("I'm hungry, what can I make here?", images[4])
     print_timing(time.perf_counter() - start)
     print(f"{Fore.MAGENTA}User: I'm hungry, what can I make here?")
     print(f"{Fore.WHITE}{response}{Style.RESET_ALL}")
 
     print_section("Processing Additional Images")
-    for i in range(11, 30):
-        print(f"\n{Fore.BLUE}Processing image {i + 1}/30{Style.RESET_ALL}")
+    for i in range(5, 46):
+        print(f"\n{Fore.BLUE}Processing image {i + 1}{Style.RESET_ALL}")
         start = time.perf_counter()
         show_image(images[i], "Current Frame")  # Show each image as it's processed
         response = chat.passive_prompt(images[i])
@@ -65,8 +65,8 @@ if __name__ == "__main__":
 
     print_section("Follow-up Query")
     start = time.perf_counter()
-    show_image(images[30], "Current Frame")  # Show final image
-    response = chat.user_prompt("Ok now what", images[30])
+    show_image(images[46], "Current Frame")  # Show final image
+    response = chat.user_prompt("Ok now what", images[46])
     print_timing(time.perf_counter() - start)
     print(f"{Fore.MAGENTA}User: Ok now what")
     print(f"{Fore.WHITE}{response}{Style.RESET_ALL}")
