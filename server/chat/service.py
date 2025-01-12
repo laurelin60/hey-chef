@@ -6,7 +6,7 @@ from openai.types.chat import ChatCompletionMessageParam, ChatCompletionSystemMe
     ChatCompletionUserMessageParam, ChatCompletionAssistantMessageParam
 from pydantic import BaseModel
 import os
-
+from singlestore import insert_new_call_session_context
 load_dotenv()
 
 
@@ -168,6 +168,8 @@ class ChatService:
                 "role": "assistant",
                 "content": response_data.passive_user_message
             }
+
+            insert_new_call_session_context(10, response_data.passive_user_message)
             self.messages.append(cast(ChatCompletionAssistantMessageParam, assistant_message))
 
             if self.send_message and response_data.passive_user_message:
