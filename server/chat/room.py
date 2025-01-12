@@ -47,7 +47,7 @@ async def process_screen_frames():
     """Process frames from screen capture in a separate task."""
     global screen_capture
     last_process_time = 0
-    min_interval = 2.0  # Minimum time between processing frames in seconds
+    min_interval = 3.0  # Minimum time between processing frames in seconds
     
     while True:
         current_time = time.time()

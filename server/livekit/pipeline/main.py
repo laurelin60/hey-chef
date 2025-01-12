@@ -99,12 +99,15 @@ async def entrypoint(ctx: JobContext):
         if message[0] == "[":
             return
         
+        if "ham and cheese" in message.lower():
+            return
+
         if agent:
             # Assuming the data packet contains text data
             asyncio.create_task(agent.say(f"{message}", allow_interruptions=True))
 
     # Optionally greet the room
-    await agent.say("Hello! I’m ready to help.", allow_interruptions=True)
+    # await agent.say("Hello! I’m ready to help.", allow_interruptions=True)
 
 
 if __name__ == "__main__":
