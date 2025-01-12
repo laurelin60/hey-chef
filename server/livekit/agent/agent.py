@@ -19,7 +19,7 @@ from typing import Annotated
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
-load_dotenv(dotenv_path=".env.local")
+load_dotenv() # guys just use one .env im gonna kms if we keep changing this
 logger = logging.getLogger("my-worker")
 logger.setLevel(logging.INFO)
 

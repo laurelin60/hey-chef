@@ -95,4 +95,5 @@ def test_audio_capture():
         virtual_mic.stop()
 
 if __name__ == "__main__":
-    test_screen_capture() 
+    #test_screen_capture() 
+    test_audio_capture()

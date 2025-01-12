@@ -69,7 +69,7 @@ class ChatService:
             message_dict = cast(Dict[str, Any], message)
             message_dict["content"] = new_content
 
-    async def user_prompt(self, message: str, image: str | None = None) -> str:
+    async def user_prompt(self, message: str, image: Optional[str] = None) -> str:
         # Add user instructions for direct questions
         system_message: Dict[str, Any] = {
             "role": "system",
@@ -78,22 +78,25 @@ class ChatService:
         self.messages.append(cast(ChatCompletionSystemMessageParam, system_message))
 
         # Add user message with image
-        content: List[Dict[str, Any]] = [
-            {
+        if image:
+            content: List[Dict[str, Any]] = [
+                {
+                    "type": "text",
+                    "text": message
+                },
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/jpg;base64,{image}",
+                        "detail": "low"
+                    }
+                }
+            ]
+        else:
+            content = [{
                 "type": "text",
                 "text": message
-            },
-            {
-                "type": "image_url",
-                "image_url": {
-                    "url": f"data:image/jpg;base64,{image}",
-                    "detail": "low"
-                }
-            }
-        ] if image else {
-            "type": "text",
-            "text": message
-        }
+            }]
 
         user_message: Dict[str, Any] = {
             "role": "user",
@@ -121,7 +124,7 @@ class ChatService:
 
         return response
 
-    async def passive_prompt(self, image: str) -> Optional[str]:
+    async def passive_prompt(self, image: Optional[str] = None) -> Optional[str]:
         # Add system instructions for passive observation
         system_message: Dict[str, Any] = {
             "role": "system",
@@ -130,15 +133,18 @@ class ChatService:
         self.messages.append(cast(ChatCompletionSystemMessageParam, system_message))
 
         # Add user message with new image
-        content: List[Dict[str, Any]] = [
-            {
-                "type": "image_url",
-                "image_url": {
-                    "url": f"data:image/jpg;base64,{image}",
-                    "detail": "low"
+        if image:
+            content: List[Dict[str, Any]] = [
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/jpg;base64,{image}",
+                        "detail": "low"
+                    }
                 }
-            }
-        ]
+            ]
+        else:
+            content = []  # Empty content for passive prompt without image
 
         user_message: Dict[str, Any] = {
             "role": "user",

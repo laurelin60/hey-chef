@@ -143,8 +143,8 @@ class AudioCapture:
         self.mic = None
         # Find a loopback device
         for mic in mics:
-            if 'speakers (realtek(r) audio)' in mic.name.lower():
-            # if 'headphones (oculus virtual audio device)' in mic.name.lower(): # we can route the whatsapp audio to this device
+            #if 'speakers (realtek(r) audio)' in mic.name.lower():
+            if 'headphones (oculus virtual audio device)' in mic.name.lower(): # we can route the whatsapp audio to this device
                 self.mic = mic
                 break
         
