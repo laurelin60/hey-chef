@@ -27,7 +27,7 @@ TOKEN = api.AccessToken() \
     .with_name("server") \
     .with_grants(api.VideoGrants(
     room_join=True,
-    room="playground-0I55-bfZu"
+    room="playground-UhLd-Caip"
 )).to_jwt()
 
 
