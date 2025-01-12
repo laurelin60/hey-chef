@@ -43,7 +43,7 @@ def print_section(title):
 
 if __name__ == "__main__":
     chat = ChatService()
-    images = read_images("server/_data/frames")
+    images = read_images("/home/awang/PycharmProjects/hey-chef/server/_data/frames")
 
     print_section("First User Query")
     start = time.perf_counter()

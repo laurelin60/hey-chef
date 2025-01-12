@@ -1,28 +1,32 @@
 import json
-from typing import List, Dict, Any, Optional, cast
+from typing import List, Dict, Any, Optional, cast, Callable
 import yaml
 from dotenv import load_dotenv
 from openai import OpenAI
-from openai.types.chat import ChatCompletionMessageParam, ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam, ChatCompletionAssistantMessageParam
+from openai.types.chat import ChatCompletionMessageParam, ChatCompletionSystemMessageParam, \
+    ChatCompletionUserMessageParam, ChatCompletionAssistantMessageParam
 from pydantic import BaseModel
 
 load_dotenv()
 
+
 class PassiveResponse(BaseModel):
     passive_user_message: Optional[str] = None
+
 
 class ChatService:
     MAX_IMAGES = 3  # Maximum number of images to keep in context
 
-    def __init__(self, model: str = "gpt-4o-mini"):
+    def __init__(self, model: str = "gpt-4o-mini", send_message: Callable | None = None):
         self.model: str = model
         self.client: OpenAI = OpenAI()
         self.messages: List[ChatCompletionMessageParam] = []
         self.image_message_indices: List[int] = []  # Keep track of messages containing images
+        self.send_message = send_message
 
-        with open("server/chat/prompts.yml", "r") as file:
+        with open("prompts.yml", "r") as file:
             self.prompts = yaml.safe_load(file)
-            
+
         # Initialize with master system prompt
         system_message: Dict[str, Any] = {
             "role": "system",
@@ -33,7 +37,7 @@ class ChatService:
     def _manage_image_context(self, new_image_idx: int) -> None:
         """Maintain a sliding window of recent images, replacing older ones with markers."""
         self.image_message_indices.append(new_image_idx)
-        
+
         # If we have more images than allowed, replace the oldest ones
         while len(self.image_message_indices) > self.MAX_IMAGES:
             oldest_idx = self.image_message_indices.pop(0)
@@ -43,11 +47,11 @@ class ChatService:
         """Replace image content with a marker to save context space."""
         if message_idx >= len(self.messages):
             return
-            
+
         message = self.messages[message_idx]
         if not isinstance(message, dict) or "content" not in message:
             return
-            
+
         content = message["content"]
         if isinstance(content, list):
             new_content = []
@@ -63,7 +67,7 @@ class ChatService:
             message_dict = cast(Dict[str, Any], message)
             message_dict["content"] = new_content
 
-    def user_prompt(self, message: str, image: str) -> str:
+    def user_prompt(self, message: str, image: str | None = None) -> str:
         # Add user instructions for direct questions
         system_message: Dict[str, Any] = {
             "role": "system",
@@ -84,8 +88,11 @@ class ChatService:
                     "detail": "low"
                 }
             }
-        ]
-        
+        ] if image else {
+            "type": "text",
+            "text": message
+        }
+
         user_message: Dict[str, Any] = {
             "role": "user",
             "content": content
@@ -130,7 +137,7 @@ class ChatService:
                 }
             }
         ]
-        
+
         user_message: Dict[str, Any] = {
             "role": "user",
             "content": content
@@ -155,9 +162,10 @@ class ChatService:
                 "content": response_data.passive_user_message
             }
             self.messages.append(cast(ChatCompletionAssistantMessageParam, assistant_message))
+
+            if self.send_message and response_data.passive_user_message:
+                self.send_message(response_data.passive_user_message)
+
             return response_data.passive_user_message
 
         return None
-    
-from room import join_room, send_message
-import asyncio
