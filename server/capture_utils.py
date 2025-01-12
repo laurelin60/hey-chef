@@ -72,8 +72,8 @@ class ScreenCapture:
         self.capture_bounds = (left, top, right, bottom)
         
         # Calculate downscaled dimensions
-        # self.target_width = (right - left) // 2
-        # self.target_height = (bottom - top) // 2
+        self.target_width = (right - left)# // 2
+        self.target_height = (bottom - top)# // 2
             
         # print(f"Capture bounds: {self.capture_bounds}")
         # print(f"Downscaled size: {self.target_width}x{self.target_height}")
