@@ -45,26 +45,6 @@ class Room:
             logging.info(
                 "Participant connected: %s %s", participant.sid, participant.identity)
 
-        @self.room.on('transcription_received')
-        def on_transcription_received(transcription: list[rtc.TranscriptionSegment]):
-            print(transcription)
-            if transcription[-1].final and self.chat_service is not None:
-                user_prompt = transcription[-1].text
-                frame = self.screen_capture.get_last_frame()
-
-                async def process_prompt():
-                    if frame and not is_frame_black(frame):
-                        # Convert PIL Image to base64
-                        buffered = io.BytesIO()
-                        frame.save(buffered, format="JPEG")
-                        img_str = base64.b64encode(buffered.getvalue()).decode()
-                        response = await self.chat_service.user_prompt(user_prompt, img_str)
-                    else:
-                        response = await self.chat_service.user_prompt(user_prompt)
-                    await self.send_message(response)
-
-                asyncio.create_task(process_prompt())
-
     async def frame_processing_loop(self):
         last_process_time = 0
         process_interval = 0.1  # Process frames pretty much as soon as they come in
@@ -103,6 +83,26 @@ class Room:
             print(f"Participant: {participant}")
             for tid, publication in participant.track_publications.items():
                 print(f"\tTrack ID: {publication}")
+
+        @self.room.on('transcription_received')
+        def on_transcription_received(transcription: list[rtc.TranscriptionSegment]):
+            print(transcription)
+            if transcription[-1].final and self.chat_service is not None:
+                user_prompt = transcription[-1].text
+                frame = self.screen_capture.get_last_frame()
+
+                async def process_prompt():
+                    if frame and not is_frame_black(frame):
+                        # Convert PIL Image to base64
+                        buffered = io.BytesIO()
+                        frame.save(buffered, format="JPEG")
+                        img_str = base64.b64encode(buffered.getvalue()).decode()
+                        response = await self.chat_service.user_prompt(user_prompt, img_str)
+                    else:
+                        response = await self.chat_service.user_prompt(user_prompt)
+                    await self.send_message(response)
+
+                asyncio.create_task(process_prompt())
 
         self.chat = rtc.ChatManager(self.room)
         self.chat_service = ChatService(send_message=self.send_message)
