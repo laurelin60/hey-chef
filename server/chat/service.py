@@ -17,7 +17,7 @@ class PassiveResponse(BaseModel):
 class ChatService:
     MAX_IMAGES = 3  # Maximum number of images to keep in context
 
-    def __init__(self, model: str = "gpt-4o", send_message: Callable | None = None):
+    def __init__(self, model: str = "gpt-4o-2024-11-20", send_message: Callable | None = None):
         self.model: str = model
         self.client: AsyncOpenAI = AsyncOpenAI()
         self.messages: List[ChatCompletionMessageParam] = []

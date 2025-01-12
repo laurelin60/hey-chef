@@ -33,7 +33,7 @@ TOKEN = api.AccessToken() \
     .with_name("server") \
     .with_grants(api.VideoGrants(
     room_join=True,
-    room="playground-taGh-Blff",
+    room="playground-cwOH-fCXv",
 )).to_jwt()
 
 # Global variables for room and chat
@@ -41,13 +41,14 @@ room = None
 chat = None
 chat_service = None
 screen_capture = None
+startup_time = None
 
 
 async def process_screen_frames():
     """Process frames from screen capture in a separate task."""
     global screen_capture
     last_process_time = 0
-    min_interval = 3.0  # Minimum time between processing frames in seconds
+    min_interval = 5.0  # Minimum time between processing frames in seconds
     
     while True:
         current_time = time.time()
@@ -125,6 +126,10 @@ async def join_room():
     def on_transcription_received(transcription: list[rtc.TranscriptionSegment]):
         if transcription[-1].final:
             text = transcription[-1].text
+            # lk is so cringe
+            if text.startswith("["):
+                return
+
             logger.info("Processing transcription: %s", text)
             # Create task for async processing
             asyncio.create_task(process_transcription(text))
@@ -132,7 +137,7 @@ async def join_room():
     # Handle already available participants and tracks
     chat = rtc.ChatManager(room)
 
-    await send_message("[SERVER] Connected")
+    # await send_message("[SERVER] Connected")
 
     @chat.on("message_received")
     def on_message_received(msg: rtc.ChatMessage):
@@ -151,7 +156,17 @@ async def join_room():
 
 
 async def send_message(text: str):
+    global startup_time
     if chat:
+        # Block messages for 6 seconds after startup
+        if startup_time:
+            current_time = time.time()
+            time_since_startup = current_time - startup_time
+            if time_since_startup < 1.0:
+                # Queue the message to be sent after the delay
+                remaining_delay = 1.0 - time_since_startup
+                await asyncio.sleep(remaining_delay)
+
         logger.info('sending message...')
 
         if not text.startswith("["):
@@ -173,6 +188,7 @@ async def process_transcription(text: str):
 
 if __name__ == "__main__":
     try:
+        startup_time = time.time()  # Record startup time
         asyncio.run(join_room())
     except KeyboardInterrupt:
         logger.info("Shutting down due to keyboard interrupt...")
