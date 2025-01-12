@@ -158,3 +158,6 @@ class ChatService:
             return response_data.passive_user_message
 
         return None
+    
+from room import join_room, send_message
+import asyncio

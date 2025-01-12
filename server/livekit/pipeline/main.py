@@ -10,7 +10,7 @@ from livekit.agents import AutoSubscribe, JobContext, WorkerOptions, cli, llm
 from livekit.agents.pipeline import VoicePipelineAgent
 from livekit.plugins import deepgram, openai, silero
 
-load_dotenv()
+load_dotenv(dotenv_path=".env.local")
 logger = logging.getLogger("my-worker")
 logger.setLevel(logging.INFO)
 
@@ -33,6 +33,7 @@ async def entrypoint(ctx: JobContext):
         ),
     )
 
+    logger.info(f"Connecting to room: {ctx.room.name}")
     await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
 
     agent = VoicePipelineAgent(
@@ -57,6 +58,9 @@ async def entrypoint(ctx: JobContext):
         data_dict = json.loads(data_str)  # Parse the JSON string
 
         message = data_dict.get("message", "No message found")
+        
+        if message[0] == "[":
+            return
         
         if agent:
             # Assuming the data packet contains text data
