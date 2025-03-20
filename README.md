@@ -20,3 +20,5 @@
     <img src="https://img.shields.io/badge/LiveKit-FF595E?style=for-the-badge&logo=livekit&logoColor=white" alt="LiveKit">
     <img src="https://img.shields.io/badge/Whisper-4CAF50?style=for-the-badge&logo=whisper&logoColor=white" alt="Whisper">
 </p>
+
+### 🥇 SB Hacks XI Second Place Winner
